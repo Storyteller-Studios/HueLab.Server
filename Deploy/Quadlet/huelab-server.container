@@ -1,0 +1,19 @@
+[Unit]
+Description=HueLab Server
+Requires=postgres.container redis.container
+
+[Container]
+Image=localhost/huelab-server:latest
+Pull=never
+ContainerName=huelab-server
+Network=host
+GroupAdd=keep-groups
+UserNS=keep-id
+User=1000:1000
+StopTimeout=60
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

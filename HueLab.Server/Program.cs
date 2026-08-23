@@ -78,17 +78,9 @@ public class Program
 
         var app = builder.Build();
 
-        if (app.Environment.IsEnvironment("Testing"))
-        {
-            app.UseDeveloperExceptionPage();
-        }
-        else
-        {
-            app.UseExceptionHandler();
-        }
+        app.UseExceptionHandler();
         app.MapOpenApi().AllowAnonymous();
         app.MapScalarApiReference().AllowAnonymous();
-        if (!app.Environment.IsEnvironment("Testing")) app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
@@ -96,14 +88,7 @@ public class Program
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<HueLabDbContext>();
-            if (app.Environment.IsEnvironment("Testing"))
-            {
-                await database.Database.EnsureCreatedAsync();
-            }
-            else
-            {
-                await database.Database.MigrateAsync();
-            }
+            await database.Database.MigrateAsync();
         }
 
         await app.RunAsync();

@@ -428,3 +428,4 @@ FodyWeavers.xsd
 *.msm
 *.msp
 HueLab.Server/appsettings.json
+Deploy/Quadlet/redis.conf
