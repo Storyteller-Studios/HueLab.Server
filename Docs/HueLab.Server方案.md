@@ -724,6 +724,12 @@ Payload:
 PostgreSQL RefreshTokens表
 ```
 
+清理：
+
+```text
+RefreshTokenCleanupService 在服务启动时执行一次，此后每 6 小时直接删除已过期或已撤销的记录。
+```
+
 
 ---
 

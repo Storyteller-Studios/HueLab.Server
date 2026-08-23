@@ -77,6 +77,9 @@ public class Program
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<IImageLockService, ImageLockService>();
         builder.Services.AddScoped<ImageTaskService>();
+        builder.Services.AddSingleton<RefreshTokenCleanupService>();
+        builder.Services.AddHostedService(provider =>
+            provider.GetRequiredService<RefreshTokenCleanupService>());
 
         var app = builder.Build();
 
