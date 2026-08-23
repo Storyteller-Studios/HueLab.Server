@@ -542,34 +542,48 @@ Response:
 
 ---
 
-## 查询个人提交记录
-
+## 分页查询个人提交记录
 
 ### GET
 
-
 ```
-/api/users/me/results
+/api/users/me/results?page=1&pageSize=20
 ```
 
+`page` 从 1 开始，`pageSize` 默认为 20，最大为 100。
 
 Response:
 
-
 ```json
-[
-    {
-        "imageId":10001,
-        "imageName":"a",
-        "colors":[
-            "#FFFFFF",
-            "#000000",
-            "#FF0000",
-            "#00FF00"
-        ]
-    }
-]
+{
+    "items":[
+        {
+            "imageId":"89f6a53e-cf15-4ac2-b606-5cd4ec21f810",
+            "imageName":"a",
+            "colors":[
+                "#FFFFFF",
+                "#000000",
+                "#FF0000",
+                "#00FF00"
+            ]
+        }
+    ],
+    "page":1,
+    "pageSize":20,
+    "totalCount":1,
+    "totalPages":1
+}
 ```
+
+## 分页查询全部提交记录
+
+### GET
+
+```
+/api/users/results?page=1&pageSize=20
+```
+
+分页参数和响应结构与个人提交记录接口一致；结果按提交时间倒序返回。
 
 ---
 

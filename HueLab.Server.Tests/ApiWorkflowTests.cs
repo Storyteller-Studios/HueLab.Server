@@ -61,12 +61,32 @@ public sealed class ApiWorkflowTests
         var submission = await submitResponse.Content.ReadFromJsonAsync<SubmitColorResponse>();
         Ensure(submission?.Success == true, "颜色提交响应未成功。");
 
-        var results = await client.GetFromJsonAsync<IReadOnlyList<UserResultResponse>>("/api/users/me/results")
+        var results = await client.GetFromJsonAsync<PagedResponse<UserResultResponse>>(
+                "/api/users/me/results?page=1&pageSize=1")
             ?? throw new InvalidOperationException("个人提交记录响应为空。");
-        Ensure(results.Count == 1, "个人提交记录数量不正确。");
-        Ensure(results[0].ImageId == imageId, "个人提交记录对应了错误的图片。");
-        Ensure(results[0].ImageName == "sample-image", "个人提交记录缺少图片名。");
-        Ensure(results[0].Colors.SequenceEqual(["#FF0000", "#00FF00", "#0000FF", "#FFFFFF"]), "颜色没有按统一格式保存。");
+        Ensure(results.Items.Count == 1, "个人提交记录数量不正确。");
+        Ensure(results.Page == 1 && results.PageSize == 1, "个人提交记录分页参数不正确。");
+        Ensure(results.TotalCount == 1 && results.TotalPages == 1, "个人提交记录分页统计不正确。");
+        Ensure(results.Items[0].ImageId == imageId, "个人提交记录对应了错误的图片。");
+        Ensure(results.Items[0].ImageName == "sample-image", "个人提交记录缺少图片名。");
+        Ensure(
+            results.Items[0].Colors.SequenceEqual(["#FF0000", "#00FF00", "#0000FF", "#FFFFFF"]),
+            "颜色没有按统一格式保存。");
+
+        var emptyPage = await client.GetFromJsonAsync<PagedResponse<UserResultResponse>>(
+                "/api/users/me/results?page=2&pageSize=1")
+            ?? throw new InvalidOperationException("个人提交记录第二页响应为空。");
+        Ensure(emptyPage.Items.Count == 0 && emptyPage.TotalCount == 1, "个人提交记录越界页不正确。");
+
+        var allResults = await client.GetFromJsonAsync<PagedResponse<UserResultResponse>>(
+                "/api/users/results?page=1&pageSize=1")
+            ?? throw new InvalidOperationException("全部提交记录响应为空。");
+        Ensure(allResults.Items.Count == 1, "全部提交记录数量不正确。");
+        Ensure(allResults.TotalCount == 1 && allResults.TotalPages == 1, "全部提交记录分页统计不正确。");
+        Ensure(allResults.Items[0].ImageId == imageId, "全部提交记录对应了错误的图片。");
+
+        var invalidPageResponse = await client.GetAsync("/api/users/results?page=1&pageSize=101");
+        Ensure(invalidPageResponse.StatusCode == HttpStatusCode.BadRequest, "超出限制的分页大小应返回 400。");
 
         var refreshResponse = await client.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequest(tokens.RefreshToken));
         Ensure(refreshResponse.StatusCode == HttpStatusCode.OK, "刷新令牌失败。");

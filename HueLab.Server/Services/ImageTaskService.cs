@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using HueLab.Server.Models;
 using HueLab.Server.Models.DAO;
+using HueLab.Server.Models.DTO.Requests;
 using HueLab.Server.Models.DTO.Responses;
 using HueLab.Server.Models.Enums;
 using HueLab.Server.Services.Database;
@@ -143,18 +144,49 @@ public sealed partial class ImageTaskService(
         return ServiceResult<SubmitColorResponse>.Success(new SubmitColorResponse(true));
     }
 
-    public async Task<IReadOnlyList<UserResultResponse>> GetUserResultsAsync(
+    public Task<PagedResponse<UserResultResponse>> GetUserResultsAsync(
         Guid userId,
+        PaginationRequest pagination,
         CancellationToken cancellationToken) =>
-        await database.ImageColorResults
-            .AsNoTracking()
-            .Where(result => result.UserId == userId)
-            .OrderByDescending(result => result.CreatedAt)
-            .Select(result => new UserResultResponse(
-                result.ImageId,
-                result.Image.Name,
-                new[] { result.Color1, result.Color2, result.Color3, result.Color4 }))
-            .ToListAsync(cancellationToken);
+        GetResultsAsync(userId, pagination, cancellationToken);
+
+    public Task<PagedResponse<UserResultResponse>> GetAllResultsAsync(
+        PaginationRequest pagination,
+        CancellationToken cancellationToken) =>
+        GetResultsAsync(null, pagination, cancellationToken);
+
+    private async Task<PagedResponse<UserResultResponse>> GetResultsAsync(
+        Guid? userId,
+        PaginationRequest pagination,
+        CancellationToken cancellationToken)
+    {
+        var query = database.ImageColorResults.AsNoTracking();
+        if (userId is { } id)
+        {
+            query = query.Where(result => result.UserId == id);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var skip = (pagination.Page - 1L) * pagination.PageSize;
+        IReadOnlyList<UserResultResponse> items = skip >= totalCount
+            ? []
+            : await query
+                .OrderByDescending(result => result.CreatedAt)
+                .ThenByDescending(result => result.Id)
+                .Skip((int)skip)
+                .Take(pagination.PageSize)
+                .Select(result => new UserResultResponse(
+                    result.ImageId,
+                    result.Image.Name,
+                    new[] { result.Color1, result.Color2, result.Color3, result.Color4 }))
+                .ToListAsync(cancellationToken);
+
+        return new PagedResponse<UserResultResponse>(
+            items,
+            pagination.Page,
+            pagination.PageSize,
+            totalCount);
+    }
 
     [GeneratedRegex("^#[0-9A-Fa-f]{6}$", RegexOptions.CultureInvariant)]
     private static partial Regex HexColorRegex();
