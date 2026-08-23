@@ -23,7 +23,14 @@ public sealed class ImageController(ImageTaskService imageTaskService) : Control
         var task = result.Value;
         var url = Url.Link("GetImageContent", new { imageId = task.ImageId })
             ?? throw new InvalidOperationException("无法生成图片内容 URL。");
-        return new ImageTaskResponse(task.ImageId, task.ImageName, url, task.ExpireSeconds);
+        return new ImageTaskResponse(
+            task.ImageId,
+            task.ImageName,
+            url,
+            task.ExpireSeconds,
+            task.MarkedImageCount,
+            task.TotalImageCount,
+            task.CurrentUserMarkedCount);
     }
 
     [HttpGet("{imageId:guid}/content", Name = "GetImageContent")]

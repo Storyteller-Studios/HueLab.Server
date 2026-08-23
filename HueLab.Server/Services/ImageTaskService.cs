@@ -15,7 +15,13 @@ public sealed partial class ImageTaskService(
     IImageLockService lockService,
     ILogger<ImageTaskService> logger)
 {
-    public async Task<ServiceResult<(Guid ImageId, string ImageName, int ExpireSeconds)>> AcquireTaskAsync(
+    public async Task<ServiceResult<(
+        Guid ImageId,
+        string ImageName,
+        int ExpireSeconds,
+        int MarkedImageCount,
+        int TotalImageCount,
+        int CurrentUserMarkedCount)>> AcquireTaskAsync(
         Guid userId,
         CancellationToken cancellationToken)
     {
@@ -29,8 +35,11 @@ public sealed partial class ImageTaskService(
                 .SingleOrDefaultAsync(cancellationToken);
             if (renewedImage is not null)
             {
-                return ServiceResult<(Guid, string, int)>.Success(
-                    (renewedImage.Id, renewedImage.Name, lockService.LockSeconds));
+                return await CreateTaskResultAsync(
+                    renewedImage.Id,
+                    renewedImage.Name,
+                    userId,
+                    cancellationToken);
             }
 
             await lockService.ReleaseAsync(imageId, userId);
@@ -47,7 +56,7 @@ public sealed partial class ImageTaskService(
                 .ToListAsync(cancellationToken);
             if (candidates.Count == 0)
             {
-                return ServiceResult<(Guid, string, int)>.Failure(
+                return ServiceResult<(Guid, string, int, int, int, int)>.Failure(
                     "当前没有待标注图片。",
                     StatusCodes.Status404NotFound);
             }
@@ -56,15 +65,50 @@ public sealed partial class ImageTaskService(
             {
                 if (await lockService.TryAcquireAsync(image.Id, userId))
                 {
-                    return ServiceResult<(Guid, string, int)>.Success(
-                        (image.Id, image.Name, lockService.LockSeconds));
+                    return await CreateTaskResultAsync(
+                        image.Id,
+                        image.Name,
+                        userId,
+                        cancellationToken);
                 }
             }
         }
 
-        return ServiceResult<(Guid, string, int)>.Failure(
+        return ServiceResult<(Guid, string, int, int, int, int)>.Failure(
             "待标注图片均已被领取，请稍后重试。",
             StatusCodes.Status409Conflict);
+    }
+
+    private async Task<ServiceResult<(
+        Guid ImageId,
+        string ImageName,
+        int ExpireSeconds,
+        int MarkedImageCount,
+        int TotalImageCount,
+        int CurrentUserMarkedCount)>> CreateTaskResultAsync(
+        Guid imageId,
+        string imageName,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var statistics = await database.Images
+            .AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(images => new
+            {
+                MarkedImageCount = images.Count(image => image.Status == ImageStatus.Finished),
+                TotalImageCount = images.Count(),
+                CurrentUserMarkedCount = database.ImageColorResults.Count(result => result.UserId == userId)
+            })
+            .SingleAsync(cancellationToken);
+
+        return ServiceResult<(Guid, string, int, int, int, int)>.Success((
+            imageId,
+            imageName,
+            lockService.LockSeconds,
+            statistics.MarkedImageCount,
+            statistics.TotalImageCount,
+            statistics.CurrentUserMarkedCount));
     }
 
     public async Task<ServiceResult<byte[]>> GetImageDataAsync(

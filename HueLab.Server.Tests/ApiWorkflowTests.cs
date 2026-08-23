@@ -45,6 +45,9 @@ public sealed class ApiWorkflowTests
         Ensure(task.ImageId == imageId, "领取了错误的图片。");
         Ensure(task.ImageName == "sample-image", "任务响应缺少图片名。");
         Ensure(task.ExpireSeconds == 600, "任务锁有效期不正确。");
+        Ensure(task.MarkedImageCount == 0, "首次领取时已标记图片数量应为 0。");
+        Ensure(task.TotalImageCount == 1, "首次领取时图片总量应为 1。");
+        Ensure(task.CurrentUserMarkedCount == 0, "首次领取时当前用户标记数量应为 0。");
         var renewedTaskResponse = await client.GetAsync("/api/images/task");
         Ensure(renewedTaskResponse.StatusCode == HttpStatusCode.OK, "续期任务失败。");
         var renewedTask = await renewedTaskResponse.Content.ReadFromJsonAsync<ImageTaskResponse>()
@@ -66,6 +69,16 @@ public sealed class ApiWorkflowTests
             $"/api/images/{imageId}/colors",
             new SubmitColorRequest(replacementColors));
         Ensure(replacementResponse.StatusCode == HttpStatusCode.OK, "重复提交颜色失败。");
+
+        var nextImageId = await SeedImageAsync(factory.Services);
+        var nextTaskResponse = await client.GetAsync("/api/images/task");
+        Ensure(nextTaskResponse.StatusCode == HttpStatusCode.OK, "领取下一张任务失败。");
+        var nextTask = await nextTaskResponse.Content.ReadFromJsonAsync<ImageTaskResponse>()
+            ?? throw new InvalidOperationException("下一张任务响应为空。");
+        Ensure(nextTask.ImageId == nextImageId, "领取了错误的下一张图片。");
+        Ensure(nextTask.MarkedImageCount == 1, "已标记图片数量不正确。");
+        Ensure(nextTask.TotalImageCount == 2, "图片总量不正确。");
+        Ensure(nextTask.CurrentUserMarkedCount == 1, "当前用户标记数量不正确。");
 
         var results = await client.GetFromJsonAsync<PagedResponse<UserResultResponse>>(
                 "/api/users/me/results?page=1&pageSize=1")

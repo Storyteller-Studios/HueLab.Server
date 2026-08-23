@@ -1,6 +1,13 @@
 namespace HueLab.Server.Models.DTO.Responses;
 
-public sealed record ImageTaskResponse(Guid ImageId, string ImageName, string Url, int ExpireSeconds);
+public sealed record ImageTaskResponse(
+    Guid ImageId,
+    string ImageName,
+    string Url,
+    int ExpireSeconds,
+    int MarkedImageCount,
+    int TotalImageCount,
+    int CurrentUserMarkedCount);
 
 public sealed record SubmitColorResponse(bool Success);
 
