@@ -10,6 +10,7 @@ public sealed class ImageDAO
     private byte[] data = null!;
 
     public Guid Id { get; set; }
+    public required string Name { get; set; }
     public required byte[] Data
     {
         get => data;

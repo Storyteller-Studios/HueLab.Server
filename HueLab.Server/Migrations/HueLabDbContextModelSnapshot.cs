@@ -84,6 +84,11 @@ namespace HueLab.Server.Migrations
                         .IsRequired()
                         .HasColumnType("bytea");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")

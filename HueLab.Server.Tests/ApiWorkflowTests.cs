@@ -43,7 +43,13 @@ public sealed class ApiWorkflowTests
         var task = await taskResponse.Content.ReadFromJsonAsync<ImageTaskResponse>()
             ?? throw new InvalidOperationException("任务响应为空。");
         Ensure(task.ImageId == imageId, "领取了错误的图片。");
+        Ensure(task.ImageName == "sample-image", "任务响应缺少图片名。");
         Ensure(task.ExpireSeconds == 600, "任务锁有效期不正确。");
+        var renewedTaskResponse = await client.GetAsync("/api/images/task");
+        Ensure(renewedTaskResponse.StatusCode == HttpStatusCode.OK, "续期任务失败。");
+        var renewedTask = await renewedTaskResponse.Content.ReadFromJsonAsync<ImageTaskResponse>()
+            ?? throw new InvalidOperationException("续期任务响应为空。");
+        Ensure(renewedTask.ImageId == task.ImageId, "重复领取任务时应续期原任务。");
 
         var contentResponse = await client.GetAsync(new Uri(task.Url));
         Ensure(contentResponse.StatusCode == HttpStatusCode.OK, "读取图片失败。");
@@ -59,6 +65,7 @@ public sealed class ApiWorkflowTests
             ?? throw new InvalidOperationException("个人提交记录响应为空。");
         Ensure(results.Count == 1, "个人提交记录数量不正确。");
         Ensure(results[0].ImageId == imageId, "个人提交记录对应了错误的图片。");
+        Ensure(results[0].ImageName == "sample-image", "个人提交记录缺少图片名。");
         Ensure(results[0].Colors.SequenceEqual(["#FF0000", "#00FF00", "#0000FF", "#FFFFFF"]), "颜色没有按统一格式保存。");
 
         var refreshResponse = await client.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequest(tokens.RefreshToken));
@@ -80,7 +87,7 @@ public sealed class ApiWorkflowTests
     {
         try
         {
-            _ = new ImageDAO { Data = "not-webp"u8.ToArray() };
+            _ = new ImageDAO { Name = "invalid", Data = "not-webp"u8.ToArray() };
         }
         catch (ArgumentException)
         {
@@ -96,6 +103,7 @@ public sealed class ApiWorkflowTests
         var database = scope.ServiceProvider.GetRequiredService<HueLabDbContext>();
         var image = new ImageDAO
         {
+            Name = "sample-image",
             Data = [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50],
             CreatedAt = DateTime.UtcNow
         };

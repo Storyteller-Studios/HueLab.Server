@@ -53,6 +53,7 @@ public sealed class ImageImportService(
 
                 database.Images.Add(new ImageDAO
                 {
+                    Name = Path.GetFileNameWithoutExtension(filePath),
                     Data = webp.ToArray(),
                     CreatedAt = DateTime.UtcNow
                 });

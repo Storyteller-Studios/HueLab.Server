@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HueLab.Server.Migrations
 {
     [DbContext(typeof(HueLabDbContext))]
-    [Migration("20260823012705_InitialCreate")]
+    [Migration("20260823055604_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -86,6 +86,11 @@ namespace HueLab.Server.Migrations
                     b.Property<byte[]>("Data")
                         .IsRequired()
                         .HasColumnType("bytea");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()

@@ -44,6 +44,10 @@ public sealed class ImageImportServiceTests
             {
                 throw new InvalidOperationException("数据库中的图片不是 WebP 格式。");
             }
+            if (storedImage.Name != "sample")
+            {
+                throw new InvalidOperationException($"数据库中的图片名不正确：{storedImage.Name}");
+            }
         }
         finally
         {

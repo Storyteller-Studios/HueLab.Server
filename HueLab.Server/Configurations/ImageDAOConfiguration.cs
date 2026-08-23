@@ -12,6 +12,7 @@ public sealed class ImageDAOConfiguration : IEntityTypeConfiguration<ImageDAO>
         builder.ToTable("Images");
         builder.HasKey(image => image.Id);
         builder.Property(image => image.Id).ValueGeneratedOnAdd();
+        builder.Property(image => image.Name).HasMaxLength(255).IsRequired();
         builder.Property(image => image.Data).HasColumnType("bytea").IsRequired();
         builder.Property(image => image.Status)
             .HasConversion<int>()

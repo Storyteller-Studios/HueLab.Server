@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using HueLab.Server.Services;
 using HueLab.Server.Services.Database;
 using Microsoft.AspNetCore.Hosting;
@@ -37,18 +36,58 @@ public sealed class HueLabApplicationFactory : WebApplicationFactory<Program>
 
     private sealed class InMemoryImageLockService : IImageLockService
     {
-        private readonly ConcurrentDictionary<Guid, Guid> owners = new();
+        private readonly Lock gate = new();
+        private readonly Dictionary<Guid, Guid> owners = [];
+        private readonly Dictionary<Guid, Guid> userTasks = [];
         public int LockSeconds => 600;
 
-        public Task<bool> TryAcquireAsync(Guid imageId, Guid userId) =>
-            Task.FromResult(owners.TryAdd(imageId, userId));
+        public Task<Guid?> TryRenewAsync(Guid userId)
+        {
+            lock (gate)
+            {
+                return Task.FromResult<Guid?>(
+                    userTasks.TryGetValue(userId, out var imageId)
+                    && owners.TryGetValue(imageId, out var owner)
+                    && owner == userId
+                        ? imageId
+                        : null);
+            }
+        }
 
-        public Task<bool> IsOwnedByAsync(Guid imageId, Guid userId) =>
-            Task.FromResult(owners.TryGetValue(imageId, out var owner) && owner == userId);
+        public Task<bool> TryAcquireAsync(Guid imageId, Guid userId)
+        {
+            lock (gate)
+            {
+                if (userTasks.ContainsKey(userId) || owners.ContainsKey(imageId))
+                {
+                    return Task.FromResult(false);
+                }
+
+                owners.Add(imageId, userId);
+                userTasks.Add(userId, imageId);
+                return Task.FromResult(true);
+            }
+        }
+
+        public Task<bool> IsOwnedByAsync(Guid imageId, Guid userId)
+        {
+            lock (gate)
+            {
+                return Task.FromResult(owners.TryGetValue(imageId, out var owner) && owner == userId);
+            }
+        }
 
         public Task ReleaseAsync(Guid imageId, Guid userId)
         {
-            owners.TryRemove(new KeyValuePair<Guid, Guid>(imageId, userId));
+            lock (gate)
+            {
+                if (owners.TryGetValue(imageId, out var owner) && owner == userId)
+                {
+                    owners.Remove(imageId);
+                    userTasks.Remove(userId);
+                }
+            }
+
             return Task.CompletedTask;
         }
     }

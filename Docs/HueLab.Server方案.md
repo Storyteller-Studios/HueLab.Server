@@ -236,6 +236,7 @@ Images
 |字段|类型|说明|
 |-|-|-|
 |Id|uuid|图片ID|
+|Name|varchar(255)|不含扩展名的图片名|
 |Data|bytea|图片地址|
 |Status|int|图片状态|
 |CreatedAt|timestamp|创建时间|
@@ -255,6 +256,7 @@ Entity:
 public class Image
 {
     public Guid Id { get; set; }
+    public string Name { get; set; }
 
     public byte[] Data { get; set; }
 
@@ -496,6 +498,7 @@ Response:
 ```json
 {
     "imageId":10001,
+    "imageName":"a",
     "url":"https://server/image/a.png",
     "expireSeconds":600
 }
@@ -557,6 +560,7 @@ Response:
 [
     {
         "imageId":10001,
+        "imageName":"a",
         "colors":[
             "#FFFFFF",
             "#000000",
@@ -619,6 +623,14 @@ TTL:
 600 seconds
 ```
 
+用户当前任务：
+
+```
+user:task:{userId}
+```
+
+Value 为 `imageId`，TTL 与图片领取锁一致。用户重复请求任务时同时续期两个 Key，并返回原任务。
+
 
 ---
 
@@ -629,31 +641,20 @@ TTL:
 
 
 ```csharp
-while(true)
+var currentImageId = redis.StringGet($"user:task:{userId}");
+if (currentImageId is not null && imageLockOwnedByUser(currentImageId, userId))
 {
+    renewImageAndUserTaskLocks();
+    return currentImage;
+}
 
-    var image =
-        get random pending image;
-
-
-    var key =
-        $"image:lock:{image.Id}";
-
-
-    var result =
-        redis.StringSet(
-            key,
-            userId,
-            TimeSpan.FromMinutes(10),
-            When.NotExists
-        );
-
-
-    if(result)
+while (true)
+{
+    var image = getRandomPendingImage();
+    if (atomicallyAcquireImageAndUserTaskLocks(image.Id, userId))
     {
         return image;
     }
-
 }
 ```
 

@@ -96,7 +96,14 @@ public class Program
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<HueLabDbContext>();
-            await database.Database.MigrateAsync();
+            if (app.Environment.IsEnvironment("Testing"))
+            {
+                await database.Database.EnsureCreatedAsync();
+            }
+            else
+            {
+                await database.Database.MigrateAsync();
+            }
         }
 
         await app.RunAsync();
