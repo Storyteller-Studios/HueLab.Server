@@ -1,5 +1,14 @@
 <Solution>
-  <Project Path="HueLab.Server/HueLab.Server.csproj" />
-  <Project Path="HueLab.ImageImporter/HueLab.ImageImporter.csproj" />
-  <Project Path="HueLab.Server.Tests/HueLab.Server.Tests.csproj" />
+  <Project Path="HueLab.Server/HueLab.Server.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="HueLab.ImageImporter/HueLab.ImageImporter.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="HueLab.Server.Tests/HueLab.Server.Tests.csproj">
+    <Platform Project="x64" />
+  </Project>
 </Solution>
