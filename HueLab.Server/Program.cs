@@ -38,6 +38,8 @@ public class Program
 
         var jwt = builder.Configuration.GetRequiredSection(JwtConfiguration.SectionName).Get<JwtConfiguration>()
             ?? throw new InvalidOperationException("Jwt 配置无效。");
+        var servers = builder.Configuration.GetSection("Servers").Get<string[]>()
+            ?? throw new InvalidOperationException("Servers 未配置。");
         builder.Services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -80,7 +82,13 @@ public class Program
 
         app.UseExceptionHandler();
         app.MapOpenApi().AllowAnonymous();
-        app.MapScalarApiReference().AllowAnonymous();
+        app.MapScalarApiReference(options =>
+        {
+            foreach (var server in servers)
+            {
+                options.AddServer(server);
+            }
+        }).AllowAnonymous();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
