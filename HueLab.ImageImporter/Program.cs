@@ -11,7 +11,7 @@ Console.OutputEncoding = Encoding.UTF8;
 
 if (args.Length != 1)
 {
-    Console.Error.WriteLine("用法：HueLab.ImageImporter.exe <图片目录>");
+    Console.Error.WriteLine("用法：dotnet run --project HueLab.ImageImporter -- <图片目录>");
     return 1;
 }
 
