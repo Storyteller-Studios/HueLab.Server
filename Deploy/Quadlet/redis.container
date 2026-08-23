@@ -1,0 +1,22 @@
+[Unit]
+Description=HueLab Redis
+Wants=network-online.target
+
+[Container]
+Image=docker.io/library/redis:alpine
+ContainerName=huelab-redis
+Network=host
+Volume=/home/raspberry_kan/quadlet.config.d/redis/data:/data
+Volume=/home/raspberry_kan/quadlet.config.d/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+Exec=redis-server /usr/local/etc/redis/redis.conf
+GroupAdd=keep-groups
+UserNS=keep-id
+User=1000:1000
+StopTimeout=60
+
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

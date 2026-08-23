@@ -1,0 +1,21 @@
+[Unit]
+Description=HueLab PostgreSQL
+Wants=network-online.target
+
+[Container]
+Image=docker.io/library/postgres:alpine
+ContainerName=huelab-postgres
+Network=host
+EnvironmentFile=/home/raspberry_kan/quadlet.config.d/postgres/postgres.env
+Volume=/home/raspberry_kan/quadlet.config.d/postgres/data:/var/lib/postgresql
+Exec=postgres -c listen_addresses=0.0.0.0
+GroupAdd=keep-groups
+UserNS=keep-id
+User=1000:1000
+StopTimeout=60
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

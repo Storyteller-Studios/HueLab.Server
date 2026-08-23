@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="HueLab.Server/HueLab.Server.csproj" />
+  <Project Path="HueLab.ImageImporter/HueLab.ImageImporter.csproj" />
+  <Project Path="HueLab.Server.Tests/HueLab.Server.Tests.csproj" />
+</Solution>
