@@ -100,36 +100,60 @@ public sealed partial class ImageTaskService(
                 StatusCodes.Status400BadRequest);
         }
 
-        if (!await lockService.IsOwnedByAsync(imageId, userId))
-        {
-            return ServiceResult<SubmitColorResponse>.Failure(
-                "图片任务未由当前用户领取或已过期。",
-                StatusCodes.Status409Conflict);
-        }
+        var color1 = colors[0].ToUpperInvariant();
+        var color2 = colors[1].ToUpperInvariant();
+        var color3 = colors[2].ToUpperInvariant();
+        var color4 = colors[3].ToUpperInvariant();
+        var submittedAt = DateTime.UtcNow;
+        var ownsLock = await lockService.IsOwnedByAsync(imageId, userId);
 
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var updated = await database.Images
-            .Where(image => image.Id == imageId && image.Status == ImageStatus.Pending)
+        var replaced = await database.ImageColorResults
+            .Where(result => result.ImageId == imageId && result.UserId == userId)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(image => image.Status, ImageStatus.Finished),
+                setters => setters
+                    .SetProperty(result => result.Color1, color1)
+                    .SetProperty(result => result.Color2, color2)
+                    .SetProperty(result => result.Color3, color3)
+                    .SetProperty(result => result.Color4, color4)
+                    .SetProperty(result => result.CreatedAt, submittedAt),
                 cancellationToken);
-        if (updated == 0)
+        if (replaced == 0)
         {
-            await transaction.RollbackAsync(cancellationToken);
-            return ServiceResult<SubmitColorResponse>.Failure("图片不存在或已完成。", StatusCodes.Status409Conflict);
+            if (!ownsLock)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<SubmitColorResponse>.Failure(
+                    "图片任务未由当前用户领取或已过期。",
+                    StatusCodes.Status409Conflict);
+            }
+
+            var updated = await database.Images
+                .Where(image => image.Id == imageId && image.Status == ImageStatus.Pending)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(image => image.Status, ImageStatus.Finished),
+                    cancellationToken);
+            if (updated == 0)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<SubmitColorResponse>.Failure(
+                    "图片不存在或已完成。",
+                    StatusCodes.Status409Conflict);
+            }
+
+            database.ImageColorResults.Add(new ImageColorResultDAO
+            {
+                ImageId = imageId,
+                UserId = userId,
+                Color1 = color1,
+                Color2 = color2,
+                Color3 = color3,
+                Color4 = color4,
+                CreatedAt = submittedAt
+            });
+            await database.SaveChangesAsync(cancellationToken);
         }
 
-        database.ImageColorResults.Add(new ImageColorResultDAO
-        {
-            ImageId = imageId,
-            UserId = userId,
-            Color1 = colors[0].ToUpperInvariant(),
-            Color2 = colors[1].ToUpperInvariant(),
-            Color3 = colors[2].ToUpperInvariant(),
-            Color4 = colors[3].ToUpperInvariant(),
-            CreatedAt = DateTime.UtcNow
-        });
-        await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         try

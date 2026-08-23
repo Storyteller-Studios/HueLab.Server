@@ -61,6 +61,12 @@ public sealed class ApiWorkflowTests
         var submission = await submitResponse.Content.ReadFromJsonAsync<SubmitColorResponse>();
         Ensure(submission?.Success == true, "颜色提交响应未成功。");
 
+        var replacementColors = new[] { "#112233", "#445566", "#778899", "#aabbcc" };
+        var replacementResponse = await client.PostAsJsonAsync(
+            $"/api/images/{imageId}/colors",
+            new SubmitColorRequest(replacementColors));
+        Ensure(replacementResponse.StatusCode == HttpStatusCode.OK, "重复提交颜色失败。");
+
         var results = await client.GetFromJsonAsync<PagedResponse<UserResultResponse>>(
                 "/api/users/me/results?page=1&pageSize=1")
             ?? throw new InvalidOperationException("个人提交记录响应为空。");
@@ -70,8 +76,8 @@ public sealed class ApiWorkflowTests
         Ensure(results.Items[0].ImageId == imageId, "个人提交记录对应了错误的图片。");
         Ensure(results.Items[0].ImageName == "sample-image", "个人提交记录缺少图片名。");
         Ensure(
-            results.Items[0].Colors.SequenceEqual(["#FF0000", "#00FF00", "#0000FF", "#FFFFFF"]),
-            "颜色没有按统一格式保存。");
+            results.Items[0].Colors.SequenceEqual(["#112233", "#445566", "#778899", "#AABBCC"]),
+            "重复提交后没有保留最后一次上传的颜色。");
 
         var emptyPage = await client.GetFromJsonAsync<PagedResponse<UserResultResponse>>(
                 "/api/users/me/results?page=2&pageSize=1")
