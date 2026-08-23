@@ -96,7 +96,7 @@ PostgreSQL      Garnet
 写入 Garnet Lock
         |
         |
-返回图片信息
+返回图片信息与实时标记统计
 ```
 
 Garnet Key：
@@ -497,12 +497,21 @@ Response:
 
 ```json
 {
-    "imageId":10001,
+    "imageId":"89f6a53e-cf15-4ac2-b606-5cd4ec21f810",
     "imageName":"a",
-    "url":"https://server/image/a.png",
-    "expireSeconds":600
+    "url":"https://server/api/images/89f6a53e-cf15-4ac2-b606-5cd4ec21f810/content",
+    "expireSeconds":600,
+    "markedImageCount":120,
+    "totalImageCount":500,
+    "currentUserMarkedCount":18
 }
 ```
+
+统计字段在每次成功领取或续期任务时重新计算：
+
+- `markedImageCount`：状态为 `Finished` 的已标记图片数量。
+- `totalImageCount`：数据库中的图片总量。
+- `currentUserMarkedCount`：当前用户已经提交结果的图片数量。
 
 ---
 
@@ -538,7 +547,10 @@ Response:
 {
     "success":true
 }
+
 ```
+
+同一用户可以对同一张图片重复提交。重复提交会覆盖原有的四个颜色及提交时间，不新增结果记录，以最后一次上传为准。其他用户不能覆盖该图片的已有结果。
 
 ---
 
