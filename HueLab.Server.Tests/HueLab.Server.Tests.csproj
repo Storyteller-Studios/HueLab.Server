@@ -15,5 +15,6 @@
   <ItemGroup>
     <ProjectReference Include="..\HueLab.Server\HueLab.Server.csproj" />
     <ProjectReference Include="..\HueLab.ImageImporter\HueLab.ImageImporter.csproj" />
+    <ProjectReference Include="..\HueLab.DataExporter\HueLab.DataExporter.csproj" />
   </ItemGroup>
 </Project>

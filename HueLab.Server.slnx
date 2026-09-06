@@ -8,6 +8,9 @@
   <Project Path="HueLab.ImageImporter/HueLab.ImageImporter.csproj">
     <Platform Project="x64" />
   </Project>
+  <Project Path="HueLab.DataExporter/HueLab.DataExporter.csproj">
+    <Platform Project="x64" />
+  </Project>
   <Project Path="HueLab.Server.Tests/HueLab.Server.Tests.csproj">
     <Platform Project="x64" />
   </Project>
